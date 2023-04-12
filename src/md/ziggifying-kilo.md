@@ -1,13 +1,13 @@
 title: Ziggifying Kilo
-date: 2020-12-13
+date: 2023-04-13
 ---
 
-Recently, I ported antirez's [Kilo editor](https://github.com/antirez/kilo) to Zig. It's called *gram* (*because kilo*gram*, duh*) and I tried to keep
+Recently, I ported antirez's [Kilo editor](https://github.com/antirez/kilo) to Zig. It's called *gram* (*because kilogram, duh*) and I tried to keep
 it as faithful as possible to the original:
 
-- *Under 1000 LOC*. Running `cloc` on `main.zig` alone shows 734 lines of Zig (versus 986)
-- *Has almost the same features* (except nonprints support)
-- Written as similarly as I could to the original but with Zig fixes to the C-isms.
+- *Under 1000 LOC*. `cloc` on `main.zig` alone yields *734* lines of Zig (versus the *986* in the original)
+- *Has almost the same features* (except non-prints support)
+- Written as similarly as I could to the original but with Zig fixes to the C-*isms*.
 
 There are already some comparisons of Rust vs Zig in the wild (*I quite enjoyed 
 [When Zig is safer and faster than Rust](https://zackoverflow.dev/writing/unsafe-rust-vs-zig) 
@@ -85,6 +85,9 @@ const Highlight = enum(u8) {
         ...
 ```
 
+The above are just some of the many examples where Zig has made the code far more human-readable without
+sacrificing the conciseness of C.
+
 ## UB footguns?
 
 > The simple, lazy way to write code must perform robust error handling.
@@ -92,7 +95,7 @@ const Highlight = enum(u8) {
 UB is bad, but unnecessary UB is worse - this is something that I think Zig remedies with the way you are forced
 to write programs.
 
-The [rewritten save functionality](https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543) in *gram* demonstrates this perfectly:
+Consider the [rewritten save functionality](https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543) in *gram*:
 
 ```zig
 fn save(self: *Self) !void {
@@ -117,7 +120,7 @@ fn save(self: *Self) !void {
 }
 ```
 
-In kilo's save functionality alone, there is already a bunch of indirection with
+In the original kilo's save functionality alone, there already exists a bunch of indirection with
  a `writeerr` goto which is referenced a total of 3 times to handle the same error,
 and the failure case where an error message is written to the status message is also handled
 in the same function.
@@ -134,4 +137,4 @@ and error handling*.
 The simplicity and linearity of Zig seemed like a con to me at first, but the mental model 
 that Zig forces me into is refreshing and so far I'm enjoying the ride.
 
-Feel free to reach out on [my twitter](https://twitter.com/bingcicle) to correct me :)
+Feel free to reach out on [my twitter](https://twitter.com/bingcicle) to give me feedback :)
