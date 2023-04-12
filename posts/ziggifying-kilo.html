@@ -1,0 +1,152 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="./site.css">
+        <title> Ziggifying Kilo</title>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <a href="./about.html">About</a>
+                <a href="./blog.html">Blog</a>
+            </nav>      
+        </header>
+        <main>
+        <h1> Ziggifying Kilo</h1>
+        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig. It&rsquo;s called <em>gram</em> (*because kilo<em>gram</em>, duh*) and I tried to keep
+it as faithful as possible to the original:</p>
+
+<ul>
+<li><em>Under 1000 LOC</em>. Running <code>cloc</code> on <code>main.zig</code> alone shows 734 lines of Zig (versus 986)</li>
+<li><em>Has almost the same features</em> (except nonprints support)</li>
+<li>Written as similarly as I could to the original but with Zig fixes to the C-isms.</li>
+</ul>
+
+<p>There are already some comparisons of Rust vs Zig in the wild (<em>I quite enjoyed
+<a href="https://zackoverflow.dev/writing/unsafe-rust-vs-zig">When Zig is safer and faster than Rust</a>
+by <a href="https://twitter.com/zack_overflow">@zack_overflow</a></em>) - this post will be on Zig vs C from the eyes
+of someone new to low-level programming.</p>
+
+<h2>The Road to Zig 1.0</h2>
+
+<p>In <a href="https://www.youtube.com/watch?v=Gv2I7qTux7g">The Road to Zig 1.0</a>, Andrew Kelley, the creator of Zig,
+describes Zig as &ldquo;C but with the problems fixed&rdquo;.</p>
+
+<p>He lists 3 major problems with C:</p>
+
+<p>1) <code>#include</code> - causes slow compilations and prevents optimizations</p>
+
+<p>2) other preprocessor macros like <code>#define</code> - makes it harder to read and debug</p>
+
+<p>3) undefined behaviour footguns everywhere</p>
+
+<p>The first point is irrelevant since I&rsquo;m writing a tiny text editor, but while porting over kilo to <em>gram</em>,
+I often encountered the above problems while reading the kilo source code, and to my pleasant surprise
+the Zig version felt a lot cleaner to read by the end. I&rsquo;ll evaluate my experience based on how well I think
+Zig fixes problems 2) and 3).</p>
+
+<h2>Preprocessors begone!</h2>
+
+<p>The entire <em>gram</em> editor is written in a single <code>main.zig</code> file and <code>std</code> is the only dependency.</p>
+
+<p>No <code>#include</code> and <code>#define</code> shenanigans - in Zig, everything is just a <code>const</code>:</p>
+
+<pre><code class="language-zig">// C: #define KILO_QUIT_TIMES 3
+const GRAM_QUIT_TIMES = 3;
+</code></pre>
+
+<p>While macros are simply functions:</p>
+
+<pre><code class="language-zig">// In C:
+// #define FIND_RESTORE_HL do { \
+//     if (saved_hl) { \
+//         memcpy(E.row[saved_hl_line].hl,saved_hl, E.row[saved_hl_line].rsize); \
+//         free(saved_hl); \
+//         saved_hl = NULL; \
+//     } \
+// } while (0)
+
+// In Zig:
+fn findRestoreHighlight(
+    self: *Self,
+    saved_hl: *?[]Highlight,
+    saved_hl_ix: ?usize,
+) void {
+    if (saved_hl.*) |hl| {
+        mem.copy(Highlight, self.rows.items[saved_hl_ix.?].hl, hl);
+        saved_hl.* = null;
+    }
+}
+</code></pre>
+
+<p>In <em>gram</em>, highlight related definitions are simply a Zig <code>enum</code> instead of a bunch of
+<code>#define</code> directives, which allows the usage of the handy <code>@enumToInt</code> to derive syntax color instead:</p>
+
+<pre><code class="language-zig">const Highlight = enum(u8) {
+    number = 31,
+    match = 34,
+    string = 35,
+    comment = 36,
+    normal = 37,
+};
+
+        ...
+        var color = @enumToInt(hl);
+        ...
+</code></pre>
+
+<h2>UB footguns?</h2>
+
+<blockquote>
+<p>The simple, lazy way to write code must perform robust error handling.</p>
+</blockquote>
+
+<p>UB is bad, but unnecessary UB is worse - this is something that I think Zig remedies with the way you are forced
+to write programs.</p>
+
+<p>The <a href="https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543">rewritten save functionality</a> in <em>gram</em> demonstrates this perfectly:</p>
+
+<pre><code class="language-zig">fn save(self: *Self) !void {
+    const buf = try self.rowsToString();
+    defer self.allocator.free(buf);
+
+    const file = try fs.cwd().createFile(
+        self.file_path,
+        .{
+            .read = true,
+        },
+    );
+    defer file.close();
+
+    file.writeAll(buf) catch |err| {
+        return err;
+    };
+
+    try self.setStatusMessage(&quot;{d} bytes written on disk&quot;, .{buf.len});
+    self.dirty = false;
+    return;
+}
+</code></pre>
+
+<p>In kilo&rsquo;s save functionality alone, there is already a bunch of indirection with
+ a <code>writeerr</code> goto which is referenced a total of 3 times to handle the same error,
+and the failure case where an error message is written to the status message is also handled
+in the same function.</p>
+
+<p>Contrast this with <em>gram</em> above, where it&rsquo;s a pretty clear linear flow with coupled resource creation/cleanup
+and error handling. Setting the status message within this function only happens if this
+succeeds, otherwise we simply catch and return the error in order to set the status message higher
+up.</p>
+
+<p>The best way to illustrate Zig&rsquo;s effect on my way of thinking is that it
+<em>quietly and gently nudges you to think about where data lives in terms of allocation, cleanup
+and error handling</em>.</p>
+
+<p>The simplicity and linearity of Zig seemed like a con to me at first, but the mental model
+that Zig forces me into is refreshing and so far I&rsquo;m enjoying the ride.</p>
+
+<p>Feel free to reach out on <a href="https://twitter.com/bingcicle">my twitter</a> to correct me :)</p>
+
+        </main>
+    </body>
+</html>
+<html>
