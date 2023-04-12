@@ -72,7 +72,7 @@ func GenerateBlog() {
 
 		body := blackfriday.Run(content)
 		blogPostName := FormatBlogPostName(frontMatter["title"])
-		link := CreateLink(blogPostName)
+		link := CreateLink(blogPostName) + ".html"
 		log.Println("Creating link for blog.html at ", link)
 		metadata := PostMetadata{Title: frontMatter["title"],
 			Date: frontMatter["date"], Link: link}
