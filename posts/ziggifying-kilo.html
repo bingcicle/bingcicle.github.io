@@ -12,13 +12,13 @@
         </header>
         <main>
         <h1> Ziggifying Kilo</h1>
-        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig. It&rsquo;s called <em>gram</em> (*because kilo<em>gram</em>, duh*) and I tried to keep
+        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig. It&rsquo;s called <em>gram</em> (<em>because kilogram, duh</em>) and I tried to keep
 it as faithful as possible to the original:</p>
 
 <ul>
-<li><em>Under 1000 LOC</em>. Running <code>cloc</code> on <code>main.zig</code> alone shows 734 lines of Zig (versus 986)</li>
-<li><em>Has almost the same features</em> (except nonprints support)</li>
-<li>Written as similarly as I could to the original but with Zig fixes to the C-isms.</li>
+<li><em>Under 1000 LOC</em>. <code>cloc</code> on <code>main.zig</code> alone yields <em>734</em> lines of Zig (versus the <em>986</em> in the original)</li>
+<li><em>Has almost the same features</em> (except non-prints support)</li>
+<li>Written as similarly as I could to the original but with Zig fixes to the C-<em>isms</em>.</li>
 </ul>
 
 <p>There are already some comparisons of Rust vs Zig in the wild (<em>I quite enjoyed
@@ -94,6 +94,9 @@ fn findRestoreHighlight(
         ...
 </code></pre>
 
+<p>The above are just some of the many examples where Zig has made the code far more human-readable without
+sacrificing the conciseness of C.</p>
+
 <h2>UB footguns?</h2>
 
 <blockquote>
@@ -103,7 +106,7 @@ fn findRestoreHighlight(
 <p>UB is bad, but unnecessary UB is worse - this is something that I think Zig remedies with the way you are forced
 to write programs.</p>
 
-<p>The <a href="https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543">rewritten save functionality</a> in <em>gram</em> demonstrates this perfectly:</p>
+<p>Consider the <a href="https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543">rewritten save functionality</a> in <em>gram</em>:</p>
 
 <pre><code class="language-zig">fn save(self: *Self) !void {
     const buf = try self.rowsToString();
@@ -127,7 +130,7 @@ to write programs.</p>
 }
 </code></pre>
 
-<p>In kilo&rsquo;s save functionality alone, there is already a bunch of indirection with
+<p>In the original kilo&rsquo;s save functionality alone, there already exists a bunch of indirection with
  a <code>writeerr</code> goto which is referenced a total of 3 times to handle the same error,
 and the failure case where an error message is written to the status message is also handled
 in the same function.</p>
@@ -144,7 +147,7 @@ and error handling</em>.</p>
 <p>The simplicity and linearity of Zig seemed like a con to me at first, but the mental model
 that Zig forces me into is refreshing and so far I&rsquo;m enjoying the ride.</p>
 
-<p>Feel free to reach out on <a href="https://twitter.com/bingcicle">my twitter</a> to correct me :)</p>
+<p>Feel free to reach out on <a href="https://twitter.com/bingcicle">my twitter</a> to give me feedback :)</p>
 
         </main>
     </body>
