@@ -12,11 +12,12 @@
         </header>
         <main>
         <h1> Ziggifying Kilo</h1>
-        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig. It&rsquo;s called <em>gram</em> (<em>because kilogram, duh</em>) and I tried to keep
+        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig as a way
+to learn Zig with a mini project. It&rsquo;s called <em>gram</em> (<em>because kilogram, duh</em>) and I tried to keep
 it as faithful as possible to the original:</p>
 
 <ul>
-<li><em>Under 1000 LOC</em>. <code>cloc</code> on <code>main.zig</code> alone yields <em>734</em> lines of Zig (versus the <em>986</em> in the original)</li>
+<li><em>Under 1000 LOC</em>. <code>cloc</code> on <code>main.zig</code> alone yields only <em>735</em> lines of Zig</li>
 <li><em>Has almost the same features</em> (except non-prints support)</li>
 <li>Written as similarly as I could to the original but with Zig fixes to the C-<em>isms</em>.</li>
 </ul>
@@ -24,7 +25,7 @@ it as faithful as possible to the original:</p>
 <p>There are already some comparisons of Rust vs Zig in the wild (<em>I quite enjoyed
 <a href="https://zackoverflow.dev/writing/unsafe-rust-vs-zig">When Zig is safer and faster than Rust</a>
 by <a href="https://twitter.com/zack_overflow">@zack_overflow</a></em>) - this post will be on Zig vs C from the eyes
-of someone new to low-level programming.</p>
+of someone rediscovering low-level programming beyond classes he took at college.</p>
 
 <h2>The Road to Zig 1.0</h2>
 
@@ -135,6 +136,10 @@ to write programs.</p>
 and the failure case where an error message is written to the status message is also handled
 in the same function.</p>
 
+<p>Of course in such a trivial example, the logic is still relatively easy to reason about, but when
+the codebase naturally becomes larger in a project, this indirection is simply an unnecessary part
+of the language that results in shooting yourself in the foot.</p>
+
 <p>Contrast this with <em>gram</em> above, where it&rsquo;s a pretty clear linear flow with coupled resource creation/cleanup
 and error handling. Setting the status message within this function only happens if this
 succeeds, otherwise we simply catch and return the error in order to set the status message higher
@@ -142,10 +147,12 @@ up.</p>
 
 <p>The best way to illustrate Zig&rsquo;s effect on my way of thinking is that it
 <em>quietly and gently nudges you to think about where data lives in terms of allocation, cleanup
-and error handling</em>.</p>
+and error handling</em>, without shoving it in your face. It&rsquo;s natural to think that allocation comes with a <code>defer</code>
+or an <code>errdefer</code>, and the <code>std</code> exposes sane defaults for commmon operations like creating a file as seen above -
+no need to call <code>open()</code> with a bunch of flags!</p>
 
-<p>The simplicity and linearity of Zig seemed like a con to me at first, but the mental model
-that Zig forces me into is refreshing and so far I&rsquo;m enjoying the ride.</p>
+<p>The simplicity and linearity of Zig seemed like a con to me at first coming from a Rust mindset,
+but the mental model that Zig forces me into is refreshing and so far I&rsquo;m enjoying the ride.</p>
 
 <p>Feel free to reach out on <a href="https://twitter.com/bingcicle">my twitter</a> to give me feedback :)</p>
 
