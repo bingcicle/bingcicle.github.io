@@ -14,11 +14,13 @@
         <h1> Zero Knowledge about ZK</h1>
         <p>In the recent months, I&rsquo;ve been diving into ZK and cryptography. I will be using this space to write personal notes on protocols and algorithms I learn about, as a way to reinforce my own knowledge.</p>
 
+<p>This will serve as my introductory post.</p>
+
 <h2>What is a Zero Knowledge proof?</h2>
 
 <p>Simply put, it is a receipt that proves that you (prover) know a certain statement, and this receipt is usually given to another person (verifier) to accept or reject.</p>
 
-<p>Different people use different examples to illustrate this, but I personally found <a href="https://twitter.com/cryptograthor">@cryptographor</a>&rsquo;s example the best: the color blindness test.</p>
+<p>Different people use different examples to illustrate this, but I personally found <a href="https://twitter.com/cryptograthor">@cryptographor</a>&rsquo;s example the best: <a href="https://youtu.be/rkFrGz-JGzo?t=163">the color blindness test</a>.</p>
 
 <h2>Color blindness test</h2>
 
@@ -45,7 +47,7 @@ Alice learns nothing other than the statement is true (color exists).</li>
 
 <p>Programs do not understand English statements like the above, so we want to convert our English statement to some sort of verifiable statement. This is usually done in the form of some mathematical computation, which comes in the form of <strong>circuits</strong>.</p>
 
-<p>Circuits allow us to express boolean (<code>AND</code>, <code>OR</code>) and arithmetic (<code>+</code>, <code>*</code>) logic. We can then model our problem as a circuit of boolean and arithmetic gates which in turn allow us to express the  <strong>constraints</strong> of the program, which are pre-set restrictions placed on the circuit. The circuit also usually takes in witness values from the prover as public input.</p>
+<p>Circuits allow us to express boolean (<code>AND</code>, <code>OR</code>) and arithmetic (<code>+</code>, <code>*</code>) logic. We can then model our problem as a circuit of boolean and arithmetic gates which in turn allow us to express the  <strong>constraints</strong> of the program, which are pre-set restrictions placed on the circuit. The circuit also usually takes in witness values from the prover as private input.</p>
 
 <p>Once the circuit is formed and the input is provided, the circuit can be evaluated and a proof can be obtained. The verifier can be convinced that the proof is valid if all constraints within the circuit are satisfied - in plain English, this means that the prover has shown the verifier that he knows a given statement.</p>
 
