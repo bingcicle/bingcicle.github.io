@@ -56,7 +56,7 @@ impl<A: Step> RangeInclusiveIteratorImpl for ops::RangeInclusive<A> {
 
 Obviously, the bottom version is more complex. Does that produce worse code though?
 
-I tested it out with this simple program:
+I tested it out with this simple program (code [here](https://github.com/bingcicle/inclusive-exclusive-range/)):
 
 ```rust
 use std::time;
