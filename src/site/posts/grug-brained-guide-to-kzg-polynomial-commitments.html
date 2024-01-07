@@ -1,0 +1,201 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="../site.css">
+        <title> Grug Brained Guide to KZG Polynomial Commitments</title>
+    </head>
+    <body>
+        <header>
+            <nav>
+                <a href="/about.html">about</a>
+                <a href="/">posts</a>
+            </nav>      
+        </header>
+        <main>
+        <h1> Grug Brained Guide to KZG Polynomial Commitments</h1>
+        <p>In this post, I&rsquo;m aiming to explain to myself what a KZG polynomial commitment is,
+and talk about my Zig implementation. If you&rsquo;re only curious about the Zig usage,
+feel free to skip to the last section.</p>
+
+<h1 id="why-another-explainer">Why another explainer?</h1>
+
+<p>Most blog posts/explainers I found out there start off with the heavy math or
+the deep technical components of what a KZG polynomial commitment is
+right away. They also are often disconnected, going from one concept to the
+next without making it very clear how it all links together. The real kicker
+imo is that none really starts off with the motivation behind KZG (in the
+context of Ethereum) and a brief technical overview first.
+The closest I found was <a href="https://hackmd.io/@protolambda/eip-4844-implementer-notes" target="_blank">@protolambda</a>&rsquo;s implementor notes.</p>
+
+<p>So this post is more of a post to myself prior to learning about KZG, and is
+meant to be a bridge to the more technical and instructional articles that
+already exists out there. (each word here is a link!).</p>
+
+<p>This post might be helpful if you think like me and require some motivating examples
+and a high level overview first to put the technical knowledge into practice.
+Otherwise, more technical readers should probably read the above links instead.</p>
+
+<h1 id="why-kzg-commitments">Why KZG commitments?</h1>
+
+<p>Before we understand what a KZG commitment is, I&rsquo;d like to think that
+we should understand what they&rsquo;re used for first.</p>
+
+<p>For a long while, Ethereum transaction fees have been way too expensive
+for regular users. Every transaction you made had to be processed by
+every participating validator in the network, and the fees that you pay is
+the cost of processing those transactions.</p>
+
+<p>Rollups were meant to solve this problem by bundling transactions together
+but even rollup fees can get too expensive for many users since rollups
+still need to pay for the data posted onto mainnet,
+and this posting of data is a function of how large the data
+blobs are and the current L1 gas price.</p>
+
+<p>Knowing the above, the solution is probably to</p>
+
+<ol>
+<li>either post less data or not post the data at all, and/or</li>
+<li>have some sort of gas-agnostic way to post the data</li>
+</ol>
+
+<p>The long term solution is to shard data which takes time to implement,
+so a stopgap solution is necessary to make fees cheaper for now. This stopgap
+is EIP-4844. The crux of it is to introduce the <em>transaction format</em> that
+will be used in sharding but not actually shard those transactions. This
+(kinda) addresses the 2 problems above.
+Notably, point 1 is where <strong>KZG commitments</strong> come in.</p>
+<p><span class="math display">\[
+\mathbb{F}
+\]</span></p>
+<h3 id="either-post-less-data-or-not-post-the-data-at-all">&ldquo;<em>either post less data or not post the data at all</em>&rdquo;</h3>
+
+<p>Currently, transaction data is stored within the calldata, which is visible
+to the EVM and is a permanent part of the blockchain. EIP-4844 introduces
+blob-carrying transactions which makes Ethereum store data on the
+consensus layer rather than the execution layer (EVM). Rather, what the
+execution layer sees is the <em>commitment</em> to those blobs. These commitments
+are smaller in size which saves on gas, and it is sufficient to verify
+these commitments without needing to access the actual blobs.</p>
+
+<h3 id="have-some-sort-of-gas-agnostic-way-to-post-the-data">&ldquo;<em>have some sort of gas-agnostic way to post the data</em>&rdquo;</h3>
+
+<p>So 4844 solves this by introducing an entirely separate fee market for blobs
+(which is why I said <em>kinda</em> above). I&rsquo;m not clued in on the details here yet
+so I can&rsquo;t confidently write here about what this means, and this is probably
+out of scope for this blog post anyway!</p>
+
+<h1 id="kzg-commitments">KZG commitments</h1>
+
+<p>Now we can get to how we achieve point 1 mentioned above. Commitment schemes
+allow one to publish a value which binds one to a message without revealing it.
+One can then open the commitment and reveal the committed message to a verifier
+to be checked. Of course this only makes sense if the cost of committing is
+less than the cost of sending the entire message.</p>
+
+<p>KZG (Kate-Zaverucha-Goldberg) commitments are a class of the above scheme.</p>
+
+<p>Some key characteristics:</p>
+
+<ul>
+<li>Constant size proof (48 bytes)</li>
+<li>Homomorphic nature allows for batch proving/verification</li>
+</ul>
+
+<h1 id="how-it-works-eli5">How it works, ELI5</h1>
+
+<p>The scheme itself is stupidly simple from an engineering POV and I didn&rsquo;t realize
+this myself prior to implementing it (The math is super complicated though).
+@protolambda explained it best: you only need</p>
+
+<ol>
+<li>a linear combination to compute a KZG commitment,</li>
+<li>a single pairing verification to verify a KZG proof</li>
+</ol>
+
+<p>Obviously there are way more details behind how the above steps happen
+(serialization/deserialization of blobs, how pairings work, optimizations, etc.),
+but the above 2 steps is really all that is happening in the scheme.</p>
+
+<p>Again, I would highly recommend the other articles for the math but nevertheless
+I will give a short overview here.</p>
+
+<p>In the paper, a commitment scheme is said to be implementable with six algorithms:
+<strong>setup, commit, open, verify_poly, create_witness, verify_eval</strong>.</p>
+
+<h2 id="setup">Setup</h2>
+
+<p>Some commitment schemes use some secret value within its computation, and this
+secret value is often obtained via something called a <strong>trusted setup</strong>.
+Essentially this is a multiparty procedure where each party creates some secret
+and runs a computation to mix it with the previous contributions.
+Eventually, the final secret value will be used for the commitment scheme.
+The cool thing about this trusted setup is that it has a
+&ldquo;1-of-N&rdquo; trust assumption, which means only a single participant is required
+to be honest for the procedure to be secure.</p>
+
+<h2 id="commit">Commit</h2>
+
+<p>As mentioned earlier, a commitment is simply a linear combination.
+This linear combination is done on the G1 group elements to produce a
+serialized G1 point (48 bytes in size) which serves as the commitment. This can
+be done naively (very slow) or via Pippenger&rsquo;s algorithm.</p>
+
+<p>In the context of 4844 a commitment is created out of a blob via the above
+method.</p>
+
+<h2 id="prove">Prove</h2>
+
+<p>Now we want to show that we know the polynomial.
+the simplest way to do that is if the prover sends the entire polynomial
+to the verifier, but that would defeat the point of the commitment scheme.
+Instead, the verifier sends over a <strong>challenge</strong>, which the prover will evaluate
+the polynomial with to produce a <strong>commitment</strong> and an <strong>evaluation proof</strong> that
+attests that the polynomial was correctly evaluated.</p>
+
+<h2 id="verification">Verification</h2>
+
+<p>Verification is then doing pairings check, which I&rsquo;m treating as a black box
+for this post because I don&rsquo;t know enough to make comments. Point is, if the
+pairings check passes, then very highly likely our evaluation proof was correct.</p>
+
+<h1 id="zig-implementation">Zig implementation</h1>
+
+<p>I ported c-kzg-4844 to Zig just to learn what goes behind the scheme. I wrote
+previously about porting another C project to Zig so for general impressions
+you can check that post out. I&rsquo;ll post thoughts specifically comparing my
+implementation with the C version.</p>
+
+<h2 id="c-interop">C Interop</h2>
+
+<p>For the Zig implementation, like the C version, I relied on <code>blst</code> for the
+backend, which means I had to finally try C interop after using Zig for some time,
+and it surprised me with how easy it was to just build <code>blst</code> and use it as a
+static library in Zig. When a C library is audited and battle-tested, it
+may be better to just use it rather than rewrite it in Rust, which is exactly
+what Zig enables you to do easily.</p>
+
+<p><code>extern struct</code>s also allow you to easily represent the C-native structs in
+native Zig, and you can build handy methods on those structs to co-locate
+logic:</p>
+
+<pre><code class="language-zig">
+</code></pre>
+
+<h2 id="defer-is-great">Defer is great</h2>
+
+<p>In the C implementation there&rsquo;s heavy abuse of <code>goto</code>s in order to free data
+whenever some computation finishes or when errors occur. This is where C
+gets a bad rap, because the need to do manual memory management along with
+copious amounts of indirection leads to bug-prone code.</p>
+
+<p>Instead of doing all that, Zig encourages the <code>init-defer</code> pattern:</p>
+
+<pre><code class="language-zig"></code></pre>
+
+<p>This means less cognitive load on where and when to free your memory.</p>
+
+<h1 id="conclusion">Conclusion</h1>
+
+        </main>
+    </body>
+</html>
+<html>

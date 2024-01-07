@@ -12,7 +12,7 @@
         </header>
         <main>
         <h1> Ziggifying Kilo</h1>
-        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo">Kilo editor</a> to Zig as a way
+        <p>Recently, I ported antirez&rsquo;s <a href="https://github.com/antirez/kilo" target="_blank">Kilo editor</a> to Zig as a way
 to learn Zig with a mini project. It&rsquo;s called <em>gram</em> (<em>because kilogram, duh</em>) and I tried to keep
 it as faithful as possible to the original:</p>
 
@@ -23,29 +23,31 @@ it as faithful as possible to the original:</p>
 </ul>
 
 <p>There are already some comparisons of Rust vs Zig in the wild (<em>I quite enjoyed
-<a href="https://zackoverflow.dev/writing/unsafe-rust-vs-zig">When Zig is safer and faster than Rust</a>
-by <a href="https://twitter.com/zack_overflow">@zack_overflow</a></em>) - this post will be on Zig vs C from the eyes
+<a href="https://zackoverflow.dev/writing/unsafe-rust-vs-zig" target="_blank">When Zig is safer and faster than Rust</a>
+by <a href="https://twitter.com/zack_overflow" target="_blank">@zack_overflow</a></em>) - this post will be on Zig vs C from the eyes
 of someone rediscovering low-level programming beyond classes he took at college.</p>
 
-<h2>The Road to Zig 1.0</h2>
+<h2 id="the-road-to-zig-1-0">The Road to Zig 1.0</h2>
 
-<p>In <a href="https://www.youtube.com/watch?v=Gv2I7qTux7g">The Road to Zig 1.0</a>, Andrew Kelley, the creator of Zig,
+<p>In <a href="https://www.youtube.com/watch?v=Gv2I7qTux7g" target="_blank">The Road to Zig 1.0</a>, Andrew Kelley, the creator of Zig,
 describes Zig as &ldquo;C but with the problems fixed&rdquo;.</p>
 
 <p>He lists 3 major problems with C:</p>
 
-<p>1) <code>#include</code> - causes slow compilations and prevents optimizations</p>
+<ol>
+<li><p><code>#include</code> - causes slow compilations and prevents optimizations</p></li>
 
-<p>2) other preprocessor macros like <code>#define</code> - makes it harder to read and debug</p>
+<li><p>other preprocessor macros like <code>#define</code> - makes it harder to read and debug</p></li>
 
-<p>3) undefined behaviour footguns everywhere</p>
+<li><p>undefined behaviour footguns everywhere</p></li>
+</ol>
 
 <p>The first point is irrelevant since I&rsquo;m writing a tiny text editor, but while porting over kilo to <em>gram</em>,
 I often encountered the above problems while reading the kilo source code, and to my pleasant surprise
 the Zig version felt a lot cleaner to read by the end. I&rsquo;ll evaluate my experience based on how well I think
 Zig fixes problems 2) and 3).</p>
 
-<h2>Preprocessors begone!</h2>
+<h2 id="preprocessors-begone">Preprocessors begone!</h2>
 
 <p>The entire <em>gram</em> editor is written in a single <code>main.zig</code> file and <code>std</code> is the only dependency.</p>
 
@@ -98,7 +100,7 @@ fn findRestoreHighlight(
 <p>The above are just some of the many examples where Zig has made the code far more human-readable without
 sacrificing the conciseness of C.</p>
 
-<h2>UB footguns?</h2>
+<h2 id="ub-footguns">UB footguns?</h2>
 
 <blockquote>
 <p>The simple, lazy way to write code must perform robust error handling.</p>
@@ -107,7 +109,7 @@ sacrificing the conciseness of C.</p>
 <p>UB is bad, but unnecessary UB is worse - this is something that I think Zig remedies with the way you are forced
 to write programs.</p>
 
-<p>Consider the <a href="https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543">rewritten save functionality</a> in <em>gram</em>:</p>
+<p>Consider the <a href="https://github.com/bingcicle/gram/blob/0b79b81b539bcf349012f2ea1ff862854b707dd7/src/main.zig#L543" target="_blank">rewritten save functionality</a> in <em>gram</em>:</p>
 
 <pre><code class="language-zig">fn save(self: *Self) !void {
     const buf = try self.rowsToString();
@@ -154,7 +156,7 @@ no need to call <code>open()</code> with a bunch of flags!</p>
 <p>The simplicity and linearity of Zig seemed like a con to me at first coming from a Rust mindset,
 but the mental model that Zig forces me into is refreshing and so far I&rsquo;m enjoying the ride.</p>
 
-<p>Feel free to reach out on <a href="https://twitter.com/bingcicle">my twitter</a> to give me feedback :)</p>
+<p>Feel free to reach out on <a href="https://twitter.com/bingcicle" target="_blank">my twitter</a> to give me feedback :)</p>
 
         </main>
     </body>
