@@ -98,11 +98,12 @@ less than the cost of sending the entire message.</p>
 <p><a href="https://www.iacr.org/archive/asiacrypt2010/6477178/6477178.pdf" target="_blank">KZG (Kate-Zaverucha-Goldberg) commitments</a>
 are a class of the above scheme.</p>
 
-<p>Some key characteristics:</p>
+<p>Some key characteristics that is useful for 4844:</p>
 
 <ul>
-<li>Constant size proof (48 bytes)</li>
-<li>Homomorphic nature allows for batch proving/verification</li>
+<li>Constant size commitment/proof (48 bytes). This is especially useful for batching,
+since the proof size is always constant regardless of the size of the blob.</li>
+<li>Verification is a single pairing check (constant time)</li>
 </ul>
 
 <h1 id="how-it-works-eli5">How it works, ELI5</h1>
@@ -137,29 +138,26 @@ to be honest for the procedure to be secure.</p>
 
 <h2 id="commit">Commit</h2>
 
-<p>As mentioned earlier, a commitment is simply a linear combination.
-This linear combination is done on the G1 group elements to produce a
-serialized G1 point (48 bytes in size) which serves as the commitment. This can
-be done naively (very slow) or via Pippenger&rsquo;s algorithm.</p>
-
-<p>In the context of 4844 a commitment is created out of a blob via the above
-method.</p>
+<p>As mentioned earlier, a commitment is simply a linear combination. A blob of bytes
+has its data transformed into a polynomial and then a linear combination done
+on its points, producing a serialized G1 point (48 bytes in size) which serves
+as the commitment. This can be done naively (very slow) or via Pippenger&rsquo;s algorithm.</p>
 
 <h2 id="prove">Prove</h2>
 
-<p>Now we want to show that we know the polynomial.
-the simplest way to do that is if the prover sends the entire polynomial
+<p>Now we want to show that we know the original data in the blob, otherwise the
+polynomial. The simplest way to do that is if the prover sends the entire polynomial
 to the verifier, but that would defeat the point of the commitment scheme.
 Instead, the verifier sends over a <strong>challenge</strong>, which the prover will evaluate
-the polynomial with to produce a <strong>commitment</strong> and an <strong>evaluation proof</strong> that
+the polynomial with to produce the <strong>evaluation</strong> and an <strong>evaluation proof</strong> that
 attests to the fact that the polynomial was correctly evaluated.</p>
 
 <h2 id="verification">Verification</h2>
 
-<p>Verification is then doing <a href="https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627" target="_blank">pairings</a>
+<p>Verification is then done with a <a href="https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627" target="_blank">pairing</a>
 check, which I treated as a black box for this post and implementation
-because I don&rsquo;t know enough to make comments. Instead, I&rsquo;ve linked to
-Vitalik Buterin&rsquo;s blog post on the topic. Point is, if the
+because I don&rsquo;t know enough to make sensible comments. Instead, I&rsquo;ve linked to
+Vitalik&rsquo;s blog post on the topic. Point is, if the
 pairings check passes, then very highly likely our evaluation proof was correct.</p>
 
 <h2 id="batching">Batching</h2>
@@ -222,7 +220,9 @@ file alone came to about 1.5x of that.</p>
 
 <h1 id="conclusion">Conclusion</h1>
 
-<p>Hopefully this was a decent overview of the KZG commitment scheme&rsquo;s role in 4844.</p>
+<p>Hopefully this was a decent enough overview of the KZG commitment scheme&rsquo;s role in
+4844 for the grug brained devs like me. Commitment schemes are magical protocols
+that when applied in the right areas can save on space and work done.</p>
 
         </main>
     </body>
