@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
-	"github.com/russross/blackfriday/v2"
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -63,6 +65,20 @@ func CreateLink(blogPostName string) string {
 	return blogPostName
 }
 
+func mdToHTML(md []byte) []byte {
+	// create markdown parser with extensions
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse(md)
+
+	// create HTML renderer with extensions
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	return markdown.Render(doc, renderer)
+}
+
 func GenerateBlog() {
 	files, _ := ioutil.ReadDir(mdDir)
 	index := Index{PostsMetadata: []PostMetadata{}}
@@ -70,7 +86,7 @@ func GenerateBlog() {
 	for _, file := range files {
 		frontMatter, content := parse(mdDir + file.Name())
 
-		body := blackfriday.Run(content)
+		body := mdToHTML(content)
 		blogPostName := FormatBlogPostName(frontMatter["title"])
 		link := CreateLink(blogPostName) + ".html"
 		log.Println("Creating link for blog.html at ", link)
