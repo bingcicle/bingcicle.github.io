@@ -12,7 +12,9 @@
         </header>
         <main>
         <h1> Grug Brained Guide to KZG Polynomial Commitments</h1>
-        <p>In this post, I&rsquo;m aiming to explain to myself what a KZG polynomial commitment is,
+        <h1 id="grug-brained-guide-to-kzg-polynomial-commitments">Grug Brained Guide to KZG Polynomial Commitments</h1>
+
+<p>In this post, I&rsquo;m aiming to explain to myself what a KZG polynomial commitment is,
 and talk about my Zig implementation. If you&rsquo;re only curious about the Zig usage,
 feel free to skip to the last section.</p>
 
@@ -24,11 +26,16 @@ right away. They also are often disconnected, going from one concept to the
 next without making it very clear how it all links together. The real kicker
 imo is that none really starts off with the motivation behind KZG (in the
 context of Ethereum) and a brief technical overview first.
-The closest I found was <a href="https://hackmd.io/@protolambda/eip-4844-implementer-notes" target="_blank">@protolambda</a>&rsquo;s implementor notes.</p>
+The closest I found was <a href="https://twitter.com/protolambda" target="_blank">@protolambda</a>&rsquo;s
+<a href="https://hackmd.io/@protolambda/eip-4844-implementer-notes" target="_blank">implementor notes</a>.</p>
 
 <p>So this post is more of a post to myself prior to learning about KZG, and is
-meant to be a bridge to the more technical and instructional articles that
-already exists out there. (each word here is a link!).</p>
+meant to be a bridge to the more
+<a href="https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html" target="_blank">technical</a>
+<a href="https://alinush.github.io/2020/05/06/kzg-polynomial-commitments.html" target="_blank">and</a>
+<a href="https://www.zkdocs.com/docs/zkdocs/commitments/kzg_polynomial_commitment/" target="_blank">instructional</a>
+<a href="https://scroll.io/blog/kzg" target="_blank">articles</a> (each word here is a link!) that
+already exists out there.</p>
 
 <p>This post might be helpful if you think like me and require some motivating examples
 and a high level overview first to put the technical knowledge into practice.
@@ -59,13 +66,12 @@ blobs are and the current L1 gas price.</p>
 
 <p>The long term solution is to shard data which takes time to implement,
 so a stopgap solution is necessary to make fees cheaper for now. This stopgap
-is EIP-4844. The crux of it is to introduce the <em>transaction format</em> that
+is <a href="https://eips.ethereum.org/EIPS/eip-4844" target="_blank">EIP-4844</a>.
+The crux of it is to introduce the <em>transaction format</em> that
 will be used in sharding but not actually shard those transactions. This
 (kinda) addresses the 2 problems above.
 Notably, point 1 is where <strong>KZG commitments</strong> come in.</p>
-<p><span class="math display">\[
-\mathbb{F}
-\]</span></p>
+
 <h3 id="either-post-less-data-or-not-post-the-data-at-all">&ldquo;<em>either post less data or not post the data at all</em>&rdquo;</h3>
 
 <p>Currently, transaction data is stored within the calldata, which is visible
@@ -91,7 +97,8 @@ One can then open the commitment and reveal the committed message to a verifier
 to be checked. Of course this only makes sense if the cost of committing is
 less than the cost of sending the entire message.</p>
 
-<p>KZG (Kate-Zaverucha-Goldberg) commitments are a class of the above scheme.</p>
+<p><a href="https://www.iacr.org/archive/asiacrypt2010/6477178/6477178.pdf" target="_blank">KZG (Kate-Zaverucha-Goldberg) commitments</a>
+are a class of the above scheme.</p>
 
 <p>Some key characteristics:</p>
 
@@ -104,7 +111,7 @@ less than the cost of sending the entire message.</p>
 
 <p>The scheme itself is stupidly simple from an engineering POV and I didn&rsquo;t realize
 this myself prior to implementing it (The math is super complicated though).
-@protolambda explained it best: you only need</p>
+@protolambda explained it best in the notes linked at the top: you only need</p>
 
 <ol>
 <li>a linear combination to compute a KZG commitment,</li>
@@ -118,13 +125,11 @@ but the above 2 steps is really all that is happening in the scheme.</p>
 <p>Again, I would highly recommend the other articles for the math but nevertheless
 I will give a short overview here.</p>
 
-<p>In the paper, a commitment scheme is said to be implementable with six algorithms:
-<strong>setup, commit, open, verify_poly, create_witness, verify_eval</strong>.</p>
-
 <h2 id="setup">Setup</h2>
 
 <p>Some commitment schemes use some secret value within its computation, and this
-secret value is often obtained via something called a <strong>trusted setup</strong>.
+secret value is often obtained via something called a
+<a href="https://ceremony.ethereum.org" target="_blank"><strong>trusted setup</strong></a>.
 Essentially this is a multiparty procedure where each party creates some secret
 and runs a computation to mix it with the previous contributions.
 Eventually, the final secret value will be used for the commitment scheme.
@@ -149,17 +154,27 @@ the simplest way to do that is if the prover sends the entire polynomial
 to the verifier, but that would defeat the point of the commitment scheme.
 Instead, the verifier sends over a <strong>challenge</strong>, which the prover will evaluate
 the polynomial with to produce a <strong>commitment</strong> and an <strong>evaluation proof</strong> that
-attests that the polynomial was correctly evaluated.</p>
+attests to the fact that the polynomial was correctly evaluated.</p>
 
 <h2 id="verification">Verification</h2>
 
-<p>Verification is then doing pairings check, which I&rsquo;m treating as a black box
-for this post because I don&rsquo;t know enough to make comments. Point is, if the
+<p>Verification is then doing <a href="https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627" target="_blank">pairings</a>
+check, which I treated as a black box for this post and implementation
+because I don&rsquo;t know enough to make comments. Instead, I&rsquo;ve linked to
+Vitalik Buterin&rsquo;s blog post on the topic. Point is, if the
 pairings check passes, then very highly likely our evaluation proof was correct.</p>
+
+<h2 id="batching">Batching</h2>
+
+<p>These blobs, commitments and proofs can be batch verified thanks to the
+homomorphic property of KZG. AFAIK this entails some re-engineering around
+how transactions are processed, which (once again) @protolambda explains in the
+link at the top.</p>
 
 <h1 id="zig-implementation">Zig implementation</h1>
 
-<p>I ported c-kzg-4844 to Zig just to learn what goes behind the scheme. I wrote
+<p>I ported <a href="https://github.com/ethereum/c-kzg-4844" target="_blank">c-kzg-4844</a> to Zig
+just to learn what goes behind the scheme. I wrote
 previously about porting another C project to Zig so for general impressions
 you can check that post out. I&rsquo;ll post thoughts specifically comparing my
 implementation with the C version.</p>
@@ -167,33 +182,49 @@ implementation with the C version.</p>
 <h2 id="c-interop">C Interop</h2>
 
 <p>For the Zig implementation, like the C version, I relied on <code>blst</code> for the
-backend, which means I had to finally try C interop after using Zig for some time,
-and it surprised me with how easy it was to just build <code>blst</code> and use it as a
-static library in Zig. When a C library is audited and battle-tested, it
-may be better to just use it rather than rewrite it in Rust, which is exactly
+backend, which means I had a chance to finally try C interop
+after using Zig for some time. Zig natively supports
+<a href="https://ziglearn.org/chapter-4/" target="_blank">C ABIs</a>, making it possible for new programs
+to be built leveraging C libraries.</p>
+
+<p>Frankly, it surprised me with how easy it was to just build <code>blst</code> and use it as a
+static library in Zig. Zig pointers also coerce nicely to C pointers, which was
+super convenient to not have to do weird casts when calling <code>blst</code>.</p>
+
+<p>Why bother with C? Well, when a C library is audited and battle-tested, it
+may be better to just use it rather than reinvent the wheel, which is exactly
 what Zig enables you to do easily.</p>
-
-<p><code>extern struct</code>s also allow you to easily represent the C-native structs in
-native Zig, and you can build handy methods on those structs to co-locate
-logic:</p>
-
-<pre><code class="language-zig">
-</code></pre>
 
 <h2 id="defer-is-great">Defer is great</h2>
 
-<p>In the C implementation there&rsquo;s heavy abuse of <code>goto</code>s in order to free data
+<p>In the C implementation, there&rsquo;s heavy abuse of <code>goto</code>s in order to free data
 whenever some computation finishes or when errors occur. This is where C
 gets a bad rap, because the need to do manual memory management along with
 copious amounts of indirection leads to bug-prone code.</p>
 
-<p>Instead of doing all that, Zig encourages the <code>init-defer</code> pattern:</p>
+<p>Instead of doing all that, Zig encourages the <code>alloc-defer</code> pair pattern:</p>
 
-<pre><code class="language-zig"></code></pre>
+<pre><code class="language-zig">    const allocator = std.testing.allocator;
+    // This allocates
+    const cfg = try KZGTrustedSetupConfig.loadFromFile(
+        allocator,
+        &quot;./src/trusted_setup.txt&quot;,
+    );
+    // This frees when out of scope
+    defer cfg.deinit();
+</code></pre>
 
-<p>This means less cognitive load on where and when to free your memory.</p>
+<p>This means less cognitive load on thinking about where and when to free your memory.</p>
+
+<h2 id="general-cleanliness">General cleanliness</h2>
+
+<p>Generally, the Zig version felt slightly cleaner to me and came out to about
+~1100LOC (including tests). The <a href="https://github.com/ethereum/c-kzg-4844/blob/main/src/c_kzg_4844.c" target="_blank">c_kzg_4844.c</a>
+file alone came to about 1.5x of that.</p>
 
 <h1 id="conclusion">Conclusion</h1>
+
+<p>Hopefully this was a decent overview of the KZG commitment scheme&rsquo;s role in 4844.</p>
 
         </main>
     </body>
