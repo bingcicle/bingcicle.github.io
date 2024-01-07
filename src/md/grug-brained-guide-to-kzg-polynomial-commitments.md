@@ -2,11 +2,9 @@ title: Grug Brained Guide to KZG Polynomial Commitments
 date: 2024-01-07
 ---
 
-# Grug Brained Guide to KZG Polynomial Commitments
-
 In this post, I'm aiming to explain to myself what a KZG polynomial commitment is,
-and talk about my Zig implementation. If you're only curious about the Zig usage,
-feel free to skip to the last section.
+and talk about my [Zig implementation](https://github.com/bingcicle/kzigg).
+If you're only curious about the Zig usage, feel free to skip to the last section.
 
 # Why another explainer?
 
@@ -14,8 +12,8 @@ Most blog posts/explainers I found out there start off with the heavy math or
 the deep technical components of what a KZG polynomial commitment is
 right away. They also are often disconnected, going from one concept to the
 next without making it very clear how it all links together. The real kicker
-imo is that none really starts off with the motivation behind KZG (in the
-context of Ethereum) and a brief technical overview first.
+imo is that none really starts off with the motivation behind KZG in the
+context of Ethereum and a brief technical overview first.
 The closest I found was [@protolambda](https://twitter.com/protolambda)'s
 [implementor notes](https://hackmd.io/@protolambda/eip-4844-implementer-notes).
 
@@ -60,8 +58,7 @@ will be used in sharding but not actually shard those transactions. This
 (kinda) addresses the 2 problems above.
 Notably, point 1 is where **KZG commitments** come in.
 
-
-### "*either post less data or not post the data at all*"
+**"*either post less data or not post the data at all*"**
 
 Currently, transaction data is stored within the calldata, which is visible
 to the EVM and is a permanent part of the blockchain. EIP-4844 introduces 
@@ -71,7 +68,7 @@ execution layer sees is the *commitment* to those blobs. These commitments
 are smaller in size which saves on gas, and it is sufficient to verify
 these commitments without needing to access the actual blobs.
 
-### "*have some sort of gas-agnostic way to post the data*"
+**"*have some sort of gas-agnostic way to post the data*"**
 
 So 4844 solves this by introducing an entirely separate fee market for blobs
 (which is why I said *kinda* above). I'm not clued in on the details here yet
@@ -160,14 +157,14 @@ link at the top.
 
 I ported [c-kzg-4844](https://github.com/ethereum/c-kzg-4844) to Zig
 just to learn what goes behind the scheme. I wrote
-previously about porting another C project to Zig so for general impressions
-you can check that post out. I'll post thoughts specifically comparing my
-implementation with the C version.
+previously about [porting another C project](https://bingcicle.github.io/posts/ziggifying-kilo.html)
+to Zig so for general impressions you can check that post out.
+I'll post thoughts specifically comparing my implementation with the C version.
 
 ## C Interop
 
-For the Zig implementation, like the C version, I relied on `blst` for the
-backend, which means I had a chance to finally try C interop
+For the Zig implementation, like the C version, I relied on [`blst`](https://github.com/supranational/blst)
+for the backend, which means I had a chance to finally try C interop
 after using Zig for some time. Zig natively supports
 [C ABIs](https://ziglearn.org/chapter-4/), making it possible for new programs
 to be built leveraging C libraries.

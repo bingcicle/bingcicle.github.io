@@ -12,11 +12,9 @@
         </header>
         <main>
         <h1> Grug Brained Guide to KZG Polynomial Commitments</h1>
-        <h1 id="grug-brained-guide-to-kzg-polynomial-commitments">Grug Brained Guide to KZG Polynomial Commitments</h1>
-
-<p>In this post, I&rsquo;m aiming to explain to myself what a KZG polynomial commitment is,
-and talk about my Zig implementation. If you&rsquo;re only curious about the Zig usage,
-feel free to skip to the last section.</p>
+        <p>In this post, I&rsquo;m aiming to explain to myself what a KZG polynomial commitment is,
+and talk about my <a href="https://github.com/bingcicle/kzigg" target="_blank">Zig implementation</a>.
+If you&rsquo;re only curious about the Zig usage, feel free to skip to the last section.</p>
 
 <h1 id="why-another-explainer">Why another explainer?</h1>
 
@@ -24,8 +22,8 @@ feel free to skip to the last section.</p>
 the deep technical components of what a KZG polynomial commitment is
 right away. They also are often disconnected, going from one concept to the
 next without making it very clear how it all links together. The real kicker
-imo is that none really starts off with the motivation behind KZG (in the
-context of Ethereum) and a brief technical overview first.
+imo is that none really starts off with the motivation behind KZG in the
+context of Ethereum and a brief technical overview first.
 The closest I found was <a href="https://twitter.com/protolambda" target="_blank">@protolambda</a>&rsquo;s
 <a href="https://hackmd.io/@protolambda/eip-4844-implementer-notes" target="_blank">implementor notes</a>.</p>
 
@@ -72,7 +70,7 @@ will be used in sharding but not actually shard those transactions. This
 (kinda) addresses the 2 problems above.
 Notably, point 1 is where <strong>KZG commitments</strong> come in.</p>
 
-<h3 id="either-post-less-data-or-not-post-the-data-at-all">&ldquo;<em>either post less data or not post the data at all</em>&rdquo;</h3>
+<p><strong>&ldquo;<em>either post less data or not post the data at all</em>&rdquo;</strong></p>
 
 <p>Currently, transaction data is stored within the calldata, which is visible
 to the EVM and is a permanent part of the blockchain. EIP-4844 introduces
@@ -82,7 +80,7 @@ execution layer sees is the <em>commitment</em> to those blobs. These commitment
 are smaller in size which saves on gas, and it is sufficient to verify
 these commitments without needing to access the actual blobs.</p>
 
-<h3 id="have-some-sort-of-gas-agnostic-way-to-post-the-data">&ldquo;<em>have some sort of gas-agnostic way to post the data</em>&rdquo;</h3>
+<p><strong>&ldquo;<em>have some sort of gas-agnostic way to post the data</em>&rdquo;</strong></p>
 
 <p>So 4844 solves this by introducing an entirely separate fee market for blobs
 (which is why I said <em>kinda</em> above). I&rsquo;m not clued in on the details here yet
@@ -175,14 +173,14 @@ link at the top.</p>
 
 <p>I ported <a href="https://github.com/ethereum/c-kzg-4844" target="_blank">c-kzg-4844</a> to Zig
 just to learn what goes behind the scheme. I wrote
-previously about porting another C project to Zig so for general impressions
-you can check that post out. I&rsquo;ll post thoughts specifically comparing my
-implementation with the C version.</p>
+previously about <a href="https://bingcicle.github.io/posts/ziggifying-kilo.html" target="_blank">porting another C project</a>
+to Zig so for general impressions you can check that post out.
+I&rsquo;ll post thoughts specifically comparing my implementation with the C version.</p>
 
 <h2 id="c-interop">C Interop</h2>
 
-<p>For the Zig implementation, like the C version, I relied on <code>blst</code> for the
-backend, which means I had a chance to finally try C interop
+<p>For the Zig implementation, like the C version, I relied on <a href="https://github.com/supranational/blst" target="_blank"><code>blst</code></a>
+for the backend, which means I had a chance to finally try C interop
 after using Zig for some time. Zig natively supports
 <a href="https://ziglearn.org/chapter-4/" target="_blank">C ABIs</a>, making it possible for new programs
 to be built leveraging C libraries.</p>
