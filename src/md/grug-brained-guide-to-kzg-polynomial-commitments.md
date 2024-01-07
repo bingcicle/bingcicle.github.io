@@ -86,10 +86,11 @@ less than the cost of sending the entire message.
 [KZG (Kate-Zaverucha-Goldberg) commitments](https://www.iacr.org/archive/asiacrypt2010/6477178/6477178.pdf)
 are a class of the above scheme.
 
-Some key characteristics:
+Some key characteristics that is useful for 4844:
 
-- Constant size proof (48 bytes)
-- Homomorphic nature allows for batch proving/verification
+- Constant size commitment/proof (48 bytes). This is especially useful for batching,
+since the proof size is always constant regardless of the size of the blob.
+- Verification is a single pairing check (constant time)
 
 # How it works, ELI5
 
@@ -121,29 +122,26 @@ to be honest for the procedure to be secure.
 
 ## Commit
 
-As mentioned earlier, a commitment is simply a linear combination.
-This linear combination is done on the G1 group elements to produce a
-serialized G1 point (48 bytes in size) which serves as the commitment. This can
-be done naively (very slow) or via Pippenger's algorithm.
-
-In the context of 4844 a commitment is created out of a blob via the above
-method.
+As mentioned earlier, a commitment is simply a linear combination. A blob of bytes
+has its data transformed into a polynomial and then a linear combination done
+on its points, producing a serialized G1 point (48 bytes in size) which serves
+as the commitment. This can be done naively (very slow) or via Pippenger's algorithm.
 
 ## Prove
 
-Now we want to show that we know the polynomial.
-the simplest way to do that is if the prover sends the entire polynomial
+Now we want to show that we know the original data in the blob, otherwise the
+polynomial. The simplest way to do that is if the prover sends the entire polynomial
 to the verifier, but that would defeat the point of the commitment scheme.
 Instead, the verifier sends over a **challenge**, which the prover will evaluate
-the polynomial with to produce a **commitment** and an **evaluation proof** that 
+the polynomial with to produce the **evaluation** and an **evaluation proof** that 
 attests to the fact that the polynomial was correctly evaluated.
 
 ## Verification
 
-Verification is then doing [pairings](https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627)
+Verification is then done with a [pairing](https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627)
 check, which I treated as a black box for this post and implementation
-because I don't know enough to make comments. Instead, I've linked to
-Vitalik Buterin's blog post on the topic. Point is, if the
+because I don't know enough to make sensible comments. Instead, I've linked to
+Vitalik's blog post on the topic. Point is, if the
 pairings check passes, then very highly likely our evaluation proof was correct.
 
 ## Batching
@@ -207,5 +205,6 @@ file alone came to about 1.5x of that.
 
 # Conclusion
 
-Hopefully this was a decent overview of the KZG commitment scheme's role in 4844.
-
+Hopefully this was a decent enough overview of the KZG commitment scheme's role in
+4844 for the grug brained devs like me. Commitment schemes are magical protocols
+that when applied in the right areas can save on space and work done.
