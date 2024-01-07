@@ -1,5 +1,5 @@
 title: Grug Brained Guide to KZG Polynomial Commitments
-date: 2024-01-0
+date: 2024-01-07
 ---
 
 # Grug Brained Guide to KZG Polynomial Commitments
