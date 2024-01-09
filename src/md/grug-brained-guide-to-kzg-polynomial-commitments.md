@@ -146,9 +146,9 @@ pairings check passes, then very highly likely our evaluation proof was correct.
 
 ## Batching
 
-These blobs, commitments and proofs can be batch verified thanks to the
-homomorphic property of KZG. AFAIK this entails some re-engineering around
-how transactions are processed, which (once again) @protolambda explains in the
+These blobs, commitments and proofs can be batch verified.
+As far as I understood, this entails some re-engineering around how 
+transactions are processed, which (once again) @protolambda explains in the
 link at the top.
 
 # Zig implementation
