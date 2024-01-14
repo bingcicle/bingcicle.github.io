@@ -68,12 +68,16 @@ execution layer sees is the *commitment* to those blobs. These commitments
 are smaller in size which saves on gas, and it is sufficient to verify
 these commitments without needing to access the actual blobs.
 
+Note here also that the consensus layer also does not store the blobs in perpetuity -
+the role of the consensus layer is to provide a **secure** real-time view of what
+is being published.
+
 **"*have some sort of gas-agnostic way to post the data*"**
 
 So 4844 solves this by introducing an entirely separate fee market for blobs
-(which is why I said *kinda* above). I'm not clued in on the details here yet
-so I can't confidently write here about what this means, and this is probably
-out of scope for this blog post anyway!
+(which is why I said *kinda* above). This is out of scope of this post, since
+it has nothing to do with how KZG works. Instead, the [proto-danksharding FAQ](https://notes.ethereum.org/@vbuterin/proto_danksharding_faq#What-does-the-proto-danksharding-multidimensional-fee-market-look-like) has a section that goes in-depth into the fee market
+structure.
 
 # KZG commitments
 
@@ -106,50 +110,104 @@ Obviously there are way more details behind how the above steps happen
 but the above 2 steps is really all that is happening in the scheme.
 
 Again, I would highly recommend the other articles for the math but nevertheless
-I will give a short overview here.
+I will give a short overview here - note that this is in the context of blobs.
+I will also (try to) include the little details I noticed in the code
+that some articles I've read seem to have missed out on.
 
 ## Setup
 
 Some commitment schemes use some secret value within its computation, and this
 secret value is often obtained via something called a
 [**trusted setup**](https://ceremony.ethereum.org).
+
 Essentially this is a multiparty procedure where each party creates some secret
 and runs a computation to mix it with the previous contributions.
 Eventually, the final secret value will be used for the commitment scheme.
+This secret value will be used to compute **all** group elements that
+are available to the prover and the verifier.
+
 The cool thing about this trusted setup is that it has a
 "1-of-N" trust assumption, which means only a single participant is required
-to be honest for the procedure to be secure.
+to be honest for the procedure to be secure. That means, unless you don't
+trust yourself, trusted setups are generally OK to trust.
+
+Some fun numbers: there were **141,416** contributors to the 
+[KZG ceremony](https://ceremony.ethereum.org/), and
+the ongoing (as of writing this)
+[Penumbra summoning ceremony](https://summoning.penumbra.zone/)
+already has about **11,799** contributors!
 
 ## Commit
 
 As mentioned earlier, a commitment is simply a linear combination. A blob of bytes
 has its data transformed into a polynomial and then a linear combination done
 on its points, producing a serialized G1 point (48 bytes in size) which serves
-as the commitment. This can be done naively (very slow) or via Pippenger's algorithm.
+as the commitment. This is further compressed into a versioned hash (32 bytes)
+for forward compatibility. 
+
+This process can be done naively (very slow) or via Pippenger's algorithm.
 
 ## Prove
 
 Now we want to show that we know the original data in the blob, otherwise the
-polynomial. The simplest way to do that is if the prover sends the entire polynomial
-to the verifier, but that would defeat the point of the commitment scheme.
-Instead, the verifier sends over a **challenge**, which the prover will evaluate
-the polynomial with to produce the **evaluation** and an **evaluation proof** that 
-attests to the fact that the polynomial was correctly evaluated.
+polynomial. In other words, we want to show that we know $p(z) = y$, where
+y is the evaluation of the polynomial at some point $z$.
+
+The simplest way to do that is if the prover sends the entire polynomial
+to the verifier, but that would defeat the point of the commitment scheme - we
+would ideally want cost savings when we go through the trouble of using such a
+scheme!
+
+Now what is this is point $z$? This is usually called a **challenge** - this is
+a random field element that the verifier sends to the prover, allowing the
+prover to evaluate the polynomial to prove its integrity.
+This requires the prover and verifier to communicate directly with each other,
+which isn't ideal. Instead, we rely on the Fiat-Shamir heuristic by letting the
+prover and verifier agree on a format prior to the protocol to simulate this interaction.
+Both the prover and verifier independently calculate the challenge, by hashing
+a 'transcript' (the simulation) into a field element, which serves as our challenge.
+
+Using this challenge to evaluate the polynomial, we get the **evaluation**
+and the **evaluation proof** that attests to the fact that the polynomial was
+correctly evaluated in the eyes of the prover.
+
+The evaluation proof is actually the **quotient polynomial** $q(x)$ such that
+
+$$
+q(x) = \frac{p(x) - y}{x - z}
+$$
+
+To derive this: we know that if $z$ is a root of $p(x)$, then $p(z) = 0$, 
+Using this property, we can actually take advantage of the fact that $p(x) - y$
+is zero at $z$ to express a quotient polynomial $q(x)$.
+
 
 ## Verification
 
-Verification is then done with a [pairing](https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627)
-check, which I treated as a black box for this post and implementation
-because I don't know enough to make sensible comments. Instead, I've linked to
-Vitalik's blog post on the topic. Point is, if the
-pairings check passes, then very highly likely our evaluation proof was correct.
+Verification is then done with a pairing check, which I treated as a black box
+for this post and implementation because I don't know enough to make
+sensible comments. Instead, I've linked to Vitalik's
+[blog post](https://medium.com/@VitalikButerin/exploring-elliptic-curve-pairings-c73c1864e627)
+on the topic.
 
 ## Batching
 
-These blobs, commitments and proofs can be batch verified.
-As far as I understood, this entails some re-engineering around how 
-transactions are processed, which (once again) @protolambda explains in the
-link at the top.
+Interestingly enough, we can re-express the above quotient polynomial in order to
+batch prove across a set of points:
+
+$$
+q(x) = \frac{p(x) - i(x)}{z(x)}
+$$
+
+Here, $i(x)$ is a polynomial (in Lagrange form) of a set of points to prove, and
+$z(x)$ is the **zero** or **vanishing polynomial** that is the set of linear
+factors that can divide $p(x) - i(x)$.
+
+Verification is then just using the same pairing check, except on linear
+combinations of group elements instead! You can see this in action within
+the code, where linear combinations (naively computed for security
+reasons) are done in the batch verification function, both in my port as well
+as the original version.
 
 # Zig implementation
 
@@ -205,6 +263,10 @@ file alone came to about 1.5x of that.
 
 # Conclusion
 
-Hopefully this was a decent enough overview of the KZG commitment scheme's role in
-4844 for the grug brained devs like me. Commitment schemes are magical protocols
-that when applied in the right areas can save on space and work done.
+Implementing the 4844 variant of KZG for myself was a good practice for me to uncover what goes
+behind the scenes during KZG, and its connection to EIP-4844. While this isn't really
+made to be used as a SNARK, it is still really cool to see commitment schemes
+used in practice.
+
+Commitment schemes are like magic when applied in the right scenarios to save on
+space and the work to be done.

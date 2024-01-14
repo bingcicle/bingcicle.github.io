@@ -67,7 +67,7 @@ func CreateLink(blogPostName string) string {
 
 func mdToHTML(md []byte) []byte {
 	// create markdown parser with extensions
-	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock | parser.MathJax
 	p := parser.NewWithExtensions(extensions)
 	doc := p.Parse(md)
 
